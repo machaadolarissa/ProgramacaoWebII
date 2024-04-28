@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Larissa_Machado_Projeto1.Models;
 using Microsoft.AspNetCore.Authorization;
 using System.Data;
+using System.Security.Claims;
 
 namespace Larissa_Machado_Projeto1.Controllers
 {
@@ -20,16 +21,33 @@ namespace Larissa_Machado_Projeto1.Controllers
             _context = context;
         }
 
-        [Authorize]
+        [Authorize(Roles = "Medico,Nutricionista")]
         // GET: TbPacientes
         public async Task<IActionResult> Index()
         {
-            var db_IFContext = _context.TbPaciente.Include(t => t.IdCidadeNavigation);
+            var user = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var tbProfissional = await _context.TbProfissional.FirstOrDefaultAsync(u => u.IdUser == user);
+
+            var idProfissional = tbProfissional.IdProfissional;
+
+            var db_IFContext = _context.TbPaciente
+                                    .Join(
+                                        _context.TbMedicoPaciente,
+                                        paciente => paciente.IdPaciente,
+                                        medicoPaciente => medicoPaciente.IdPaciente,
+                                        (paciente, medicoPaciente) => new { Paciente = paciente, MedicoPaciente = medicoPaciente }
+                                    )
+                                    .Where(join => join.MedicoPaciente.IdProfissional == idProfissional)
+                                    .Select(join => join.Paciente)
+                                    .Include(p => p.IdCidadeNavigation);
+
             return View(await db_IFContext.ToListAsync());
         }
 
-        [Authorize]
+        [Authorize(Roles = "Medico,Nutricionista")]
         // GET: TbPacientes/Details/5
+        // Larissa Machado
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -49,8 +67,9 @@ namespace Larissa_Machado_Projeto1.Controllers
             return View(tbPaciente);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Medico,Nutricionista")]
         // GET: TbPacientes/Create
+        // Larissa Machado
         public IActionResult Create()
         {
             ViewData["IdCidade"] = new SelectList(_context.TbCidade, "IdCidade", "Nome");
@@ -75,12 +94,13 @@ namespace Larissa_Machado_Projeto1.Controllers
             return View();
         }
 
-        [Authorize]
+        [Authorize(Roles = "Medico,Nutricionista")]
         // POST: TbPacientes/Create
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        // Larissa Machado
         public async Task<IActionResult> Create([Bind("Nome,Rg,Cpf,DataNascimento,NomeResponsavel,Sexo,Etnia,Endereco,Bairro,IdCidade,TelResidencial,TelComercial,TelCelular,Profissao,FlgAtleta,FlgGestante")] TbPaciente tbPaciente)
         {
             try
@@ -89,6 +109,25 @@ namespace Larissa_Machado_Projeto1.Controllers
                 {
                     _context.Add(tbPaciente);
                     await _context.SaveChangesAsync();
+
+                    var user = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                    var tbProfissional = await _context.TbProfissional.FirstOrDefaultAsync(u => u.IdUser == user);
+
+                    var userId = tbProfissional.IdProfissional;
+                    var idPaciente = tbPaciente.IdPaciente;
+                    var informacaoResumida = tbPaciente.Nome;
+
+                    TbMedicoPaciente tbMedicoPaciente = new TbMedicoPaciente
+                    {
+                        IdPaciente = idPaciente,
+                        IdProfissional = userId,
+                        InformacaoResumida = informacaoResumida
+                    };
+
+                    _context.TbMedicoPaciente.Add(tbMedicoPaciente);
+                    await _context.SaveChangesAsync();
+                    
                     return RedirectToAction(nameof(Index));
                 }
             } catch (DbUpdateException dex)
@@ -121,8 +160,9 @@ namespace Larissa_Machado_Projeto1.Controllers
             return View(tbPaciente);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Medico,Nutricionista")]
         // GET: TbPacientes/Edit/5
+        // Larissa Machado
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -157,12 +197,13 @@ namespace Larissa_Machado_Projeto1.Controllers
             return View(tbPaciente);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Medico,Nutricionista")]
         // POST: TbPacientes/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost, ActionName("Edit")]
         [ValidateAntiForgeryToken]
+        // Larissa Machado
         public async Task<IActionResult> EditPost(int? id)
         {
             if (id == null)
@@ -212,8 +253,9 @@ namespace Larissa_Machado_Projeto1.Controllers
             return View(tbPaciente);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Medico,Nutricionista")]
         // GET: TbPacientes/Delete/5
+        // Larissa Machado
         public async Task<IActionResult> Delete(int? id, bool? saveChangesError = false)
         {
             if (id == null)
@@ -239,8 +281,9 @@ namespace Larissa_Machado_Projeto1.Controllers
             return View(tbPaciente);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Medico,Nutricionista")]
         // POST: TbPacientes/Delete/5
+        // Larissa Machado
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
