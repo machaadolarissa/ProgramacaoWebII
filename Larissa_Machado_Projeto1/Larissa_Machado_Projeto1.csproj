@@ -8,7 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Areas\Identity\Pages\Account\Register - Cópia %282%29.cshtml.cs" />
+    <Compile Remove="Areas\Identity\Pages\Account\Register - Cópia.cshtml.cs" />
     <Compile Remove="Controllers\TbAlimentoController.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="Areas\Identity\Pages\Account\Register - Cópia %282%29.cshtml" />
+    <Content Remove="Areas\Identity\Pages\Account\Register - Cópia.cshtml" />
   </ItemGroup>
 
   <ItemGroup>
